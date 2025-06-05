@@ -40,7 +40,7 @@ class ProofOfWorkThread(threading.Thread):
         self.counter = 0
         self.running = True
         self.daemon = True
-        self.credit = 10000000000
+        self.credit = 10000
     def run(self):
         """Main thread loop - counts by 1000 and checks proof of work"""
         while self.running:
@@ -63,14 +63,14 @@ class ProofOfWorkThread(threading.Thread):
                     if not np.any(np.isnan(current_data)) and self.credit > 0:
                         self.credit += 1
                         # Data is optimal - check proof of work
-                        pow_result = sha256_proof_of_work("GeorgeW",self.counter, difficulty=5)
+                        pow_result = sha256_proof_of_work("GeorgeW",self.counter, difficulty=3)
                         if pow_result == True:
                             # Send result back to main thread
                             result_data = {
                                 'counter': self.counter,
                                 'data_valid': True,
                                 'proof_of_work': pow_result,
-                                'data_hash': hashlib.sha256(','.join([f"{x:.6f}" for x in current_data]).encode()).hexdigest()[:16]
+                                'data_hash': hashlib.sha256(b"GeorgeW"+str(self.counter).encode()).hexdigest()[:16]
                             }
                             
                             try:
@@ -92,7 +92,7 @@ class ProofOfWorkThread(threading.Thread):
                             pass
                 
                 # Sleep to control thread frequency
-                time.sleep(0.001)  # 10 Hz
+                time.sleep(0.1)  # 10 Hz
                 
             except Exception as e:
                 print(f"PoW Thread Error: {e}")
