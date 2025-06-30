@@ -7,7 +7,7 @@ def moving_average(data, window_size=7):
     """Smooth data with a simple moving average."""
     if len(data) < window_size:
         return data
-    return np.convolve(data, np.ones(window_size)/window_size, mode='same')
+    return np.convolve(data, np.ones_like(window_size)/window_size, mode='same')
 
 class OscilloscopeDisplay:
     def __init__(self, width=800, height=400, history_length=50):
