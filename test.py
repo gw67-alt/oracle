@@ -226,10 +226,10 @@ while True:
         # Find largest contour
         largest_contour = max(contours, key=cv2.contourArea)
         
-        if len(largest_contour) >= 10:
+        if len(largest_contour) >= 5:
             # Calculate curvature
             curv = curvature(largest_contour, k=15)
-            curv_smooth = moving_average(curv, window_size=9)
+            curv_smooth = moving_average(curv, window_size=19)
             
             # Add to temporal smoother
             smoother.add(curv_smooth)
