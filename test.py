@@ -226,17 +226,17 @@ while True:
         # Find largest contour
         largest_contour = max(contours, key=cv2.contourArea)
         
-        if len(largest_contour) >= 5:
+        if len(largest_contour) >= 10:
             # Calculate curvature
             curv = curvature(largest_contour, k=15)
-            curv_smooth = moving_average(curv, window_size=19)
+            curv_smooth = moving_average(curv, window_size=9)
             
             # Add to temporal smoother
             smoother.add(curv_smooth)
             curv_time_smooth = smoother.get_smoothed()
             
             # Update oscilloscope with smoothed data
-            oscilloscope.add_waveform(abs(-1/curv_time_smooth))
+            oscilloscope.add_waveform(curv)
             
             # Draw contour on frame
             cv2.drawContours(display_frame, [largest_contour], -1, (0, 255, 0), 2)
