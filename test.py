@@ -210,7 +210,7 @@ smoother = CurvatureSmoother(maxlen=5)
 
 # Sharp signal detection parameters - focused on mid-graph
 SHARP_THRESHOLD = 0.8
-MIN_PROMINENCE = 0.3
+MIN_PROMINENCE = 0.6
 MID_RANGE_PERCENT = 0.4  # Focus on middle 40% of the graph
 frame_count = 0
 
