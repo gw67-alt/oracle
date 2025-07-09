@@ -10,9 +10,10 @@ def moving_average(data, window_size=7):
         return data
     return np.convolve(data, np.ones(window_size)/window_size, mode='same')
 
-def detect_sharp_signals_mid_graph(curvature_data, threshold=0.8, min_prominence=0.3, mid_range_percent=0.4):
+def detect_sharp_signals_mid_only(curvature_data, threshold=0.8, min_prominence=0.3, mid_range_percent=0.4):
     """
-    Detect sharp signals specifically in the middle portion of the curvature data.
+    Detect sharp signals ONLY in the middle portion of the curvature data.
+    Completely ignores signals outside the middle range.
     
     Args:
         curvature_data: Array of curvature values
@@ -21,10 +22,10 @@ def detect_sharp_signals_mid_graph(curvature_data, threshold=0.8, min_prominence
         mid_range_percent: Percentage of data length to consider as "middle" (0.4 = 40%)
     
     Returns:
-        Dictionary with sharp signal information focused on mid-graph region
+        Dictionary with sharp signal information ONLY from mid-graph region
     """
     if len(curvature_data) == 0:
-        return {"indices": [], "values": [], "count": 0, "mid_range": (0, 0)}
+        return {"indices": [], "values": [], "count": 0, "mid_range": (0, 0), "ignored_signals": 0}
     
     # Calculate middle range indices
     data_length = len(curvature_data)
@@ -37,8 +38,20 @@ def detect_sharp_signals_mid_graph(curvature_data, threshold=0.8, min_prominence
     
     sharp_indices = []
     sharp_values = []
+    ignored_count = 0
     
-    # Only search in the middle range
+    # First pass: count all signals (including ignored ones) for statistics
+    for i in range(1, len(curvature_data) - 1):
+        current_val = curvature_data[i]
+        if current_val > threshold:
+            left_val = curvature_data[i-1]
+            right_val = curvature_data[i+1]
+            if (current_val > left_val and current_val > right_val and 
+                min(current_val - left_val, current_val - right_val) > min_prominence):
+                if i < mid_start or i >= mid_end:
+                    ignored_count += 1
+    
+    # Second pass: only collect signals in the middle range
     for i in range(mid_start, mid_end):
         current_val = curvature_data[i]
         
@@ -60,8 +73,27 @@ def detect_sharp_signals_mid_graph(curvature_data, threshold=0.8, min_prominence
         "max_value": max(sharp_values) if sharp_values else 0,
         "avg_value": np.mean(sharp_values) if sharp_values else 0,
         "mid_range": (mid_start, mid_end),
-        "mid_range_percent": mid_range_percent * 100
+        "mid_range_percent": mid_range_percent * 100,
+        "ignored_signals": ignored_count
     }
+
+def filter_curvature_to_middle(curvature_data, mid_range_percent=0.4):
+    """
+    Filter curvature data to only include the middle portion.
+    Sets non-middle values to zero.
+    """
+    if len(curvature_data) == 0:
+        return curvature_data
+    
+    data_length = len(curvature_data)
+    mid_start = int(data_length * (0.5 - mid_range_percent/2))
+    mid_end = int(data_length * (0.5 + mid_range_percent/2))
+    
+    # Create filtered data with zeros outside middle range
+    filtered_data = np.zeros_like(curvature_data)
+    filtered_data[mid_start:mid_end] = curvature_data[mid_start:mid_end]
+    
+    return filtered_data
 
 class OscilloscopeDisplay:
     def __init__(self, width=800, height=400, history_length=50):
@@ -104,6 +136,11 @@ class OscilloscopeDisplay:
         self.ax.set_yticks([])
         self.ax.axhline(y=0, color=self.dim_green, linewidth=1, alpha=0.5)
         
+        # Add visual indicators for middle region
+        mid_start = int(self.width * 0.3)  # 30% from left
+        mid_end = int(self.width * 0.7)    # 70% from left
+        self.ax.axvspan(mid_start, mid_end, alpha=0.1, color=self.phosphor_green, label='Active Region')
+        
         if len(self.history) > 1:
             for i, trace in enumerate(list(self.history)[:-1]):
                 alpha = 0.1 + (i / len(self.history)) * 0.3
@@ -115,7 +152,7 @@ class OscilloscopeDisplay:
                 self.ax.plot(range(self.width), current_trace, color=self.phosphor_green, alpha=0.2-i*0.05, linewidth=6+i*2)
             self.ax.plot(range(self.width), current_trace, color=self.phosphor_green, alpha=1.0, linewidth=2)
         
-        self.ax.text(0.02, 0.95, 'CURVATURE OSCILLOSCOPE', transform=self.ax.transAxes, color=self.phosphor_green,
+        self.ax.text(0.02, 0.95, 'CURVATURE OSCILLOSCOPE - MID-ONLY MODE', transform=self.ax.transAxes, color=self.phosphor_green,
                      fontsize=12, fontweight='bold', family='monospace')
         
         if len(self.history) > 0:
@@ -203,19 +240,20 @@ def curvature(contour, k=15):
         curvatures.append(curvature_val)
     return np.array(curvatures)
 
-# Main execution with mid-graph sharp signal detection
+# Main execution - IGNORING NON-MIDDLE SIGNALS
 cap = cv2.VideoCapture(0)
 oscilloscope = OscilloscopeDisplay(width=800, height=400, history_length=20)
 smoother = CurvatureSmoother(maxlen=5)
 
-# Sharp signal detection parameters - focused on mid-graph
+# Sharp signal detection parameters - MIDDLE ONLY
 SHARP_THRESHOLD = 0.8
-MIN_PROMINENCE = 0.6
+MIN_PROMINENCE = 0.3
 MID_RANGE_PERCENT = 0.4  # Focus on middle 40% of the graph
 frame_count = 0
+total_ignored_signals = 0
 
-print("Starting Mid-Graph Sharp Signal Detection...")
-print(f"Monitoring middle {MID_RANGE_PERCENT*100}% of oscilloscope trace")
+print("Starting MIDDLE-ONLY Sharp Signal Detection...")
+print(f"IGNORING all signals outside middle {MID_RANGE_PERCENT*100}% of oscilloscope trace")
 print("Press ESC to quit")
 print("=" * 60)
 
@@ -250,29 +288,36 @@ while True:
                 
                 # Process curvature data for oscilloscope
                 processed_curv = abs(-1/curv_time_smooth)
-                oscilloscope.add_waveform(processed_curv)
                 
-                # Detect sharp signals in mid-graph region
-                mid_sharp_signals = detect_sharp_signals_mid_graph(
+                # FILTER TO MIDDLE ONLY - zero out non-middle signals
+                filtered_curv = filter_curvature_to_middle(processed_curv, MID_RANGE_PERCENT)
+                oscilloscope.add_waveform(filtered_curv)
+                
+                # Detect sharp signals ONLY in middle region
+                mid_only_signals = detect_sharp_signals_mid_only(
                     processed_curv, 
                     threshold=SHARP_THRESHOLD, 
                     min_prominence=MIN_PROMINENCE,
                     mid_range_percent=MID_RANGE_PERCENT
                 )
                 
-                # Print mid-graph sharp signal detection results
-                if mid_sharp_signals["count"] > 0:
+                # Track ignored signals
+                total_ignored_signals += mid_only_signals["ignored_signals"]
+                
+                # Print ONLY middle signals (ignore all others)
+                if mid_only_signals["count"] > 0:
                     timestamp = time.strftime("%H:%M:%S")
-                    print(f"[{timestamp}] Frame {frame_count}: MID-GRAPH SHARP SIGNALS!")
-                    print(f"  └─ Mid-range: indices {mid_sharp_signals['mid_range'][0]}-{mid_sharp_signals['mid_range'][1]} ({mid_sharp_signals['mid_range_percent']:.1f}% of graph)")
-                    print(f"  └─ Signals found: {mid_sharp_signals['count']}")
-                    print(f"  └─ Max value: {mid_sharp_signals['max_value']:.3f}")
-                    print(f"  └─ Avg value: {mid_sharp_signals['avg_value']:.3f}")
-                    print(f"  └─ Positions: {mid_sharp_signals['indices']}")
-                    print(f"  └─ Values: {[f'{v:.3f}' for v in mid_sharp_signals['values']]}")
+                    print(f"[{timestamp}] Frame {frame_count}: MIDDLE SIGNALS ONLY!")
+                    print(f"  └─ Active range: indices {mid_only_signals['mid_range'][0]}-{mid_only_signals['mid_range'][1]} ({mid_only_signals['mid_range_percent']:.1f}% of graph)")
+                    print(f"  └─ Middle signals: {mid_only_signals['count']}")
+                    print(f"  └─ Ignored signals: {mid_only_signals['ignored_signals']} (total ignored: {total_ignored_signals})")
+                    print(f"  └─ Max value: {mid_only_signals['max_value']:.3f}")
+                    print(f"  └─ Avg value: {mid_only_signals['avg_value']:.3f}")
+                    print(f"  └─ Positions: {mid_only_signals['indices']}")
+                    print(f"  └─ Values: {[f'{v:.3f}' for v in mid_only_signals['values']]}")
                     print("-" * 50)
                 
-                # Visual feedback on detected frame
+                # Visual feedback - only show middle signals
                 cv2.drawContours(display_frame, [cnt], -1, (0, 0, 255), 2)
                 M = cv2.moments(cnt)
                 if M["m00"] != 0:
@@ -280,9 +325,9 @@ while True:
                     cy = int(M["m01"] / M["m00"])
                     cv2.circle(display_frame, (cx, cy), 5, (0, 255, 255), -1)
                     
-                    # Add mid-graph signal indicator
-                    if mid_sharp_signals["count"] > 0:
-                        cv2.putText(display_frame, f'MID-SHARP: {mid_sharp_signals["count"]}',
+                    # Only show middle signal count
+                    if mid_only_signals["count"] > 0:
+                        cv2.putText(display_frame, f'MID-ONLY: {mid_only_signals["count"]}',
                                     (cx-40, cy-25), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0,255,0), 1)
                     
                     cv2.putText(display_frame, f'Knot: Area={area:.0f}, Circ={circularity:.2f}',
@@ -290,10 +335,12 @@ while True:
     
     cv2.putText(display_frame, f'Knots detected: {knot_count}',
                 (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    cv2.putText(display_frame, f'Total ignored: {total_ignored_signals}',
+                (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
     
     scope_display = oscilloscope.render()
-    cv2.imshow('Green Knot Detection', display_frame)
-    cv2.imshow('Curvature Oscilloscope', scope_display)
+    cv2.imshow('Green Knot Detection - Middle Only', display_frame)
+    cv2.imshow('Curvature Oscilloscope - Middle Only', scope_display)
     
     if cv2.waitKey(1) & 0xFF == 27:  # ESC key
         break
@@ -302,4 +349,4 @@ cap.release()
 cv2.destroyAllWindows()
 plt.close('all')
 print("=" * 60)
-print("Mid-graph oscilloscope session ended.")
+print(f"Middle-only oscilloscope session ended. Total ignored signals: {total_ignored_signals}")
