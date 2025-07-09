@@ -167,7 +167,7 @@ while True:
             continue
         circularity = 4 * np.pi * area / (perimeter * perimeter)
         if area > 50 and circularity > 0.7:
-            if len(cnt) >= 10:
+            if len(cnt) >= 5:
                 knot_count += 1
 
                 curv = curvature(cnt, k=15)
