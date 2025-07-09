@@ -167,8 +167,9 @@ while True:
             continue
         circularity = 4 * np.pi * area / (perimeter * perimeter)
         if area > 50 and circularity > 0.7:
-            knot_count += 1
             if len(cnt) >= 10:
+                knot_count += 1
+
                 curv = curvature(cnt, k=15)
                 curv_smooth = moving_average(curv, window_size=9)
                 smoother.add(curv_smooth)
