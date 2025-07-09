@@ -148,10 +148,17 @@ smoother = CurvatureSmoother(maxlen=5)
 print("Starting Oscilloscope-Style Green Knot Analyzer...")
 print("Press ESC to quit")
 
+from collections import deque
+
+# Initialize variables for rate of change tracking
+knot_history = deque(maxlen=30)  # Store last 30 frames of knot counts
+rate_of_change_history = deque(maxlen=30)  # Store rate of change values
+
 while True:
     ret, frame = cap.read()
     if not ret:
         break
+    
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     lower_green = np.array([36, 25, 25])
     upper_green = np.array([86, 255, 255])
@@ -160,6 +167,7 @@ while True:
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     display_frame = frame.copy()
     knot_count = 0
+    
     for cnt in contours:
         area = cv2.contourArea(cnt)
         perimeter = cv2.arcLength(cnt, True)
@@ -167,26 +175,39 @@ while True:
             continue
         circularity = 4 * np.pi * area / (perimeter * perimeter)
         if area > 50 and circularity > 0.7:
-            knot_count += 1
             if len(cnt) >= 10:
-                curv = curvature(cnt, k=15)
-                curv_smooth = moving_average(curv, window_size=9)
-                smoother.add(curv_smooth)
-                curv_time_smooth = smoother.get_smoothed()
-                oscilloscope.add_waveform(abs(-1/curv_time_smooth))
-                cv2.drawContours(display_frame, [cnt], -1, (0, 0, 255), 2)
-                M = cv2.moments(cnt)
-                if M["m00"] != 0:
-                    cx = int(M["m10"] / M["m00"])
-                    cy = int(M["m01"] / M["m00"])
-                    cv2.circle(display_frame, (cx, cy), 5, (0, 255, 255), -1)
-                    cv2.putText(display_frame, f'Knot: Area={area:.0f}, Circ={circularity:.2f}',
-                                (cx-40, cy-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,255), 1)
+                knot_count += 1
+    
+    # Store current knot count
+    knot_history.append(knot_count)
+    
+    # Calculate rate of change
+    if len(knot_history) >= 2:
+        rate_of_change = knot_history[-1] - knot_history[-2]
+        rate_of_change_history.append(rate_of_change)
+        
+        # Calculate smoothed rate of change (optional)
+        if len(rate_of_change_history) >= 5:
+            smoothed_rate = np.mean(list(rate_of_change_history)[-5:])
+        else:
+            smoothed_rate = rate_of_change
+    else:
+        rate_of_change = 0
+        smoothed_rate = 0
+
+    
+    # Display knot count and rate of change
     cv2.putText(display_frame, f'Knots detected: {knot_count}',
                 (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+    cv2.putText(display_frame, f'Rate of change: {rate_of_change:+d}',
+                (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+    cv2.putText(display_frame, f'Smoothed rate: {smoothed_rate:+.1f}',
+                (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
+    
     scope_display = oscilloscope.render()
     cv2.imshow('Green Knot Detection', display_frame)
     cv2.imshow('Curvature Oscilloscope', scope_display)
+    
     if cv2.waitKey(1) & 0xFF == 27:  # ESC key
         break
 
