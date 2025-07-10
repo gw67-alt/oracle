@@ -74,7 +74,7 @@ now = datetime.datetime.now()
 
 
 # Constants
-STARTING_CREDITS = 100
+STARTING_CREDITS = 1000
 COST_PER_GUESS = 10
 WIN_CREDITS = 150
 def number_guessing_game():
