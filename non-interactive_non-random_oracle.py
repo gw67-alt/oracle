@@ -157,6 +157,7 @@ while True:
     upper_green = np.array([86, 255, 255])
     mask = cv2.inRange(hsv, lower_green, upper_green)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     display_frame = frame.copy()
     knot_count = 0
