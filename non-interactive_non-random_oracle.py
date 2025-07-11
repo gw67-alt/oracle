@@ -9,6 +9,12 @@ def moving_average(data, window_size=7):
         return data
     return np.convolve(data, np.ones(window_size)/window_size, mode='same')
 
+def rate_of_change(data):
+    """Calculate the rate of change (first derivative) of the data."""
+    if len(data) < 2:
+        return np.array([0])
+    return np.diff(data, prepend=data[0])
+
 class OscilloscopeDisplay:
     def __init__(self, width=800, height=400, history_length=50):
         self.width = width
@@ -58,7 +64,8 @@ class OscilloscopeDisplay:
             for i in range(3):
                 self.ax.plot(range(self.width), current_trace, color=self.phosphor_green, alpha=0.2-i*0.05, linewidth=6+i*2)
             self.ax.plot(range(self.width), current_trace, color=self.phosphor_green, alpha=1.0, linewidth=2)
-        self.ax.text(0.02, 0.95, 'CURVATURE OSCILLOSCOPE', transform=self.ax.transAxes, color=self.phosphor_green,
+        # Updated title to reflect rate of change
+        self.ax.text(0.02, 0.95, 'CURVATURE RATE OF CHANGE OSCILLOSCOPE', transform=self.ax.transAxes, color=self.phosphor_green,
                      fontsize=12, fontweight='bold', family='monospace')
         if len(self.history) > 0:
             current_data = self.history[-1]
@@ -145,7 +152,7 @@ cap = cv2.VideoCapture(0)
 oscilloscope = OscilloscopeDisplay(width=800, height=400, history_length=20)
 smoother = CurvatureSmoother(maxlen=5)
 
-print("Starting Oscilloscope-Style Green Knot Analyzer...")
+print("Starting Oscilloscope-Style Green Knot Analyzer with Rate of Change...")
 print("Press ESC to quit")
 
 while True:
@@ -160,6 +167,7 @@ while True:
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     display_frame = frame.copy()
     knot_count = 0
+    
     for cnt in contours:
         area = cv2.contourArea(cnt)
         perimeter = cv2.arcLength(cnt, True)
@@ -172,8 +180,14 @@ while True:
                 curv = curvature(cnt, k=15)
                 curv_smooth = moving_average(curv, window_size=9)
                 smoother.add(curv_smooth)
-                curv_time_smooth = smoother
-                oscilloscope.add_waveform(abs(-1/curv_smooth*knot_count))
+                curv_time_smooth = smoother.get_smoothed()
+                
+                # Calculate rate of change of the smoothed curvature
+                if len(curv_time_smooth) > 1:
+                    roc = rate_of_change(curv_time_smooth)
+                    # Send rate of change to oscilloscope instead of raw curvature
+                    oscilloscope.add_waveform(roc)
+                
                 cv2.drawContours(display_frame, [cnt], -1, (0, 0, 255), 2)
                 M = cv2.moments(cnt)
                 if M["m00"] != 0:
@@ -182,11 +196,12 @@ while True:
                     cv2.circle(display_frame, (cx, cy), 5, (0, 255, 255), -1)
                     cv2.putText(display_frame, f'Knot: Area={area:.0f}, Circ={circularity:.2f}',
                                 (cx-40, cy-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,255), 1)
+    
     cv2.putText(display_frame, f'Knots detected: {knot_count}',
                 (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
     scope_display = oscilloscope.render()
     cv2.imshow('Green Knot Detection', display_frame)
-    cv2.imshow('Curvature Oscilloscope', scope_display)
+    cv2.imshow('Curvature Rate of Change Oscilloscope', scope_display)
     if cv2.waitKey(1) & 0xFF == 27:  # ESC key
         break
 
