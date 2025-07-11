@@ -172,8 +172,8 @@ while True:
                 curv = curvature(cnt, k=15)
                 curv_smooth = moving_average(curv, window_size=9)
                 smoother.add(curv_smooth)
-                curv_time_smooth = smoother.get_smoothed()
-                oscilloscope.add_waveform(abs(-1/curv_time_smooth*knot_count))
+                curv_time_smooth = smoother
+                oscilloscope.add_waveform(abs(-1/curv_smooth*knot_count))
                 cv2.drawContours(display_frame, [cnt], -1, (0, 0, 255), 2)
                 M = cv2.moments(cnt)
                 if M["m00"] != 0:
