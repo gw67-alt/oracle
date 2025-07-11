@@ -157,7 +157,6 @@ while True:
     upper_green = np.array([86, 255, 255])
     mask = cv2.inRange(hsv, lower_green, upper_green)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     display_frame = frame.copy()
     knot_count = 0
@@ -174,7 +173,7 @@ while True:
                 curv_smooth = moving_average(curv, window_size=9)
                 smoother.add(curv_smooth)
                 curv_time_smooth = smoother.get_smoothed()
-                oscilloscope.add_waveform(abs(-1/curv_time_smooth))
+                oscilloscope.add_waveform(abs(-1/curv_time_smooth*knot_count))
                 cv2.drawContours(display_frame, [cnt], -1, (0, 0, 255), 2)
                 M = cv2.moments(cnt)
                 if M["m00"] != 0:
