@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
-
+import hashlib
+        
 def moving_average(data, window_size=7):
     """Smooth data with a simple moving average."""
     if len(data) < window_size:
@@ -147,8 +148,8 @@ smoother = CurvatureSmoother(maxlen=5)
 
 print("Starting Oscilloscope-Style Green Knot Analyzer...")
 print("Press ESC to quit")
-
-while True:
+STATE_SPACE = 9999999
+for cost in range(STATE_SPACE):
     ret, frame = cap.read()
     if not ret:
         break
@@ -169,6 +170,8 @@ while True:
         if area > 50 and circularity > 0.7:
             knot_count += 1
             if len(cnt) >= 10:
+                
+               
                 curv = curvature(cnt, k=15)
                 curv_smooth = moving_average(curv, window_size=9)
                 smoother.add(curv_smooth)
@@ -176,6 +179,8 @@ while True:
                 oscilloscope.add_waveform(abs(-1/curv_time_smooth))
                 cv2.drawContours(display_frame, [cnt], -1, (0, 0, 255), 2)
                 M = cv2.moments(cnt)
+                if cost**2 < STATE_SPACE and max(curv_smooth) == 0:
+                    print(cost)
                 if M["m00"] != 0:
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
