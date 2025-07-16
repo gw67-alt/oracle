@@ -1,1 +1,1 @@
-Oracle precision varies, so adjust according to latent result.
+Oracle precision varies, so adjust according to previous result.
