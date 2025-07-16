@@ -186,7 +186,7 @@ for cost in range(STATE_SPACE):
                 # Compute the absolute differences between consecutive elements
                 diffs = np.abs(np.diff(window))
                 # Check if any difference exceeds 0.1
-                if cost**2 < STATE_SPACE and np.any(diffs > 0.05):
+                if cost**2 < STATE_SPACE and np.any(diffs > 0.05) and diffs[len(diffs)//2] > 0.045:
                     # Your action here
                     print(cost)
 
