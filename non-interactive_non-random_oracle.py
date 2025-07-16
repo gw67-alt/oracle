@@ -174,14 +174,22 @@ for cost in range(STATE_SPACE):
                
                 curv = curvature(cnt, k=15)
                 curv_smooth = moving_average(curv, window_size=9)
-                print(len(curv_smooth))
-                smoother.add(curv_smooth[13:17])
+                smoother.add(curv_smooth[(len(curv_smooth)//3)*1:(len(curv_smooth)//3)*2])
                 curv_time_smooth = smoother.get_smoothed()
                 oscilloscope.add_waveform(abs(-1/curv_time_smooth))
                 cv2.drawContours(display_frame, [cnt], -1, (0, 0, 255), 2)
                 M = cv2.moments(cnt)
-                #if cost**2 < STATE_SPACE and max(curv_smooth) > 0 :
-                    #print(cost)
+                arr = smoother.get_smoothed()  # This should be a NumPy array or convertible to one
+
+                # Take last 5 positions (or all if less than 5)
+                window = arr[-15:] if len(arr) >= 15 else arr
+                # Compute the absolute differences between consecutive elements
+                diffs = np.abs(np.diff(window))
+                # Check if any difference exceeds 0.1
+                if cost**2 < STATE_SPACE and np.any(diffs > 0.05):
+                    # Your action here
+                    print(cost)
+
                 if M["m00"] != 0:
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
