@@ -179,14 +179,15 @@ for cost in range(STATE_SPACE):
                 oscilloscope.add_waveform(abs(-1/curv_time_smooth))
                 cv2.drawContours(display_frame, [cnt], -1, (0, 0, 255), 2)
                 M = cv2.moments(cnt)
-                arr = smoother.get_smoothed()  # This should be a NumPy array or convertible to one
-
-                # Take last 5 positions (or all if less than 5)
-                window = arr[-15:] if len(arr) >= 15 else arr
-                # Compute the absolute differences between consecutive elements
-                diffs = np.abs(np.diff(window))
+                arr = np.array(smoother.get_smoothed())
+                window = arr[-15:] if len(arr) >= 15 else arr  # last 15 values for better pattern
+                diffs = np.diff(window)  # consecutive differences
+                signs = np.sign(diffs)
+                sign_flips = np.diff(signs)
+                # A sign flip is where sign_flips != 0
+                num_flips = np.sum(sign_flips != 0)
                 # Check if any difference exceeds 0.1
-                if cost**2 < STATE_SPACE and np.any(diffs > 0.05) and diffs[len(diffs)//2] > 0.045:
+                if cost**2 < STATE_SPACE and num_flips > 1:
                     # Your action here
                     print(cost)
 
