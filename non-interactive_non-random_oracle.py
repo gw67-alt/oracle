@@ -174,13 +174,14 @@ for cost in range(STATE_SPACE):
                
                 curv = curvature(cnt, k=15)
                 curv_smooth = moving_average(curv, window_size=9)
-                smoother.add(curv_smooth)
+                print(len(curv_smooth))
+                smoother.add(curv_smooth[13:17])
                 curv_time_smooth = smoother.get_smoothed()
                 oscilloscope.add_waveform(abs(-1/curv_time_smooth))
                 cv2.drawContours(display_frame, [cnt], -1, (0, 0, 255), 2)
                 M = cv2.moments(cnt)
-                if cost**2 < STATE_SPACE and max(curv_smooth) == 0 and max(curv_time_smooth) > 0.15:
-                    print(cost)
+                #if cost**2 < STATE_SPACE and max(curv_smooth) > 0 :
+                    #print(cost)
                 if M["m00"] != 0:
                     cx = int(M["m10"] / M["m00"])
                     cy = int(M["m01"] / M["m00"])
