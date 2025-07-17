@@ -140,7 +140,16 @@ def curvature(contour, k=15):
         curvature_val = 1/r if r != 0 else 0
         curvatures.append(curvature_val)
     return np.array(curvatures)
-
+def rate_of_change_sign_flips(data):
+    diffs = np.diff(data)
+    signs = np.sign(diffs)
+    sign_flips = np.diff(signs)
+    flips_indices = np.where(sign_flips != 0)[0]
+    if len(flips_indices) < 2:
+        return []
+    intervals = np.diff(flips_indices)
+    rate_of_change = intervals[1:] / intervals[:-1]
+    return rate_of_change
 # Main execution
 cap = cv2.VideoCapture(0)
 oscilloscope = OscilloscopeDisplay(width=800, height=400, history_length=20)
@@ -176,7 +185,7 @@ for cost in range(STATE_SPACE):
                 curv_smooth = moving_average(curv, window_size=9)
                 smoother.add(curv_smooth[(len(curv_smooth)//3)*1:(len(curv_smooth)//3)*2])
                 curv_time_smooth = smoother.get_smoothed()
-                oscilloscope.add_waveform(abs(-1/curv_time_smooth))
+                oscilloscope.add_waveform(abs(-cost/curv_time_smooth))
                 cv2.drawContours(display_frame, [cnt], -1, (0, 0, 255), 2)
                 M = cv2.moments(cnt)
                 arr = np.array(smoother.get_smoothed())
@@ -184,12 +193,13 @@ for cost in range(STATE_SPACE):
                 diffs = np.diff(window)  # consecutive differences
                 signs = np.sign(diffs)
                 sign_flips = np.diff(signs)
+                
                 # A sign flip is where sign_flips != 0
                 num_flips = np.sum(sign_flips != 0)
                 # Check if any difference exceeds 0.1
                 if cost**2 < STATE_SPACE and num_flips > 1:
                     # Your action here
-                    print(cost)
+                    print(rate_of_change_sign_flips(sign_flips))
 
                 if M["m00"] != 0:
                     cx = int(M["m10"] / M["m00"])
