@@ -199,7 +199,7 @@ for cost in range(STATE_SPACE):
                 # Check if any difference exceeds 0.1
                 if cost**2 < STATE_SPACE and num_flips > 1:
                     # Your action here
-                    print(rate_of_change_sign_flips(sign_flips))
+                    print(len(rate_of_change_sign_flips(sign_flips))*sum(rate_of_change_sign_flips(sign_flips))*sign_flips)
 
                 if M["m00"] != 0:
                     cx = int(M["m10"] / M["m00"])
