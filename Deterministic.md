@@ -1,1 +1,0 @@
-If it is inevitable to win then lose in a gradient with ultradice then there must be a consistent pattern, how is that possible if a range is selected according to a lesser case that is a temporal domain selected by hand? There indeed are deterministic forces at play.
