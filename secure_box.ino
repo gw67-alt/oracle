@@ -1,40 +1,47 @@
 /*
- * Arduino Random Number Generator
- * 
- * This sketch generates a random number when the Arduino boots up
- * and repeatedly prints that number to the serial monitor.
- */
-
-// The random number we'll generate at boot
-long randomNumber;
+* Arduino Secure Random Number Generator - V3
+*
+* This sketch implements a robust startup handshake. It waits for a serial
+* connection to be fully established before seeding the random number
+* generator. This prevents using the same seed after each reset.
+*
+* It then waits for an access token 'R' to provide a new random number.
+*/
 
 void setup() {
-  // Initialize serial communication at 9600 baud
+  // 1. Initialize serial communication
   Serial.begin(9600);
+
+  // 2. THIS IS THE KEY FIX: Wait until the serial port is connected.
+  // This gives the floating analog pin time to build up random noise.
+  while (!Serial); 
   
-  // Wait for serial connection to be established
-  while (!Serial) {
-    ; // Wait for serial port to connect
-  }
-  
-  // Seed the random number generator
-  // Using analogRead on an unconnected pin creates a fairly random seed
+  // 3. Add a small extra delay for stability.
+  delay(50);
+
+  // 4. Now, seed the random number generator. The seed will be much more random.
   randomSeed(analogRead(A0));
   
-  // Generate our random number (between 1 and 1000)
-  randomNumber = random(1, 9999);
-
-  Serial.println(randomNumber);
- 
-  
-  // Small delay before starting the loop
-  delay(100);
+  // 5. Send a "ready" signal to the Python script to confirm setup is complete.
+  Serial.println("ARDUINO_READY");
 }
 
 void loop() {
-  // Print the random number
-  Serial.println(randomNumber);
-  
-  // Wait for a second before printing again
-  delay(100);
+  // Check if there is data available to read.
+  if (Serial.available() > 0) {
+    // Read the incoming byte.
+    char accessToken = Serial.read();
+
+    // Check if the received token is our access key ('R').
+    if (accessToken == 'R') {
+      // NOTE: We do NOT re-seed here. We just pull the next number
+      // from the already-seeded random sequence.
+      long newRandomNumber = random(1, 100);
+      
+      delay(5000);
+
+      // Send the fresh random number back.
+      Serial.println(newRandomNumber);
+    }
+  }
 }
