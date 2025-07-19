@@ -163,9 +163,9 @@ for cost in range(STATE_SPACE):
     if not ret:
         break
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    lower_green = np.array([36, 25, 25])
-    upper_green = np.array([86, 255, 255])
-    mask = cv2.inRange(hsv, lower_green, upper_green)
+    lower_red = np.array([170, 70, 50])
+    upper_red = np.array([180, 255, 255])
+    mask = cv2.inRange(hsv, lower_red, upper_red)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     display_frame = frame.copy()
