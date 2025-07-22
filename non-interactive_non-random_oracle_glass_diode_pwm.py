@@ -1,4 +1,4 @@
-
+#look for non dynamic minimums
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
