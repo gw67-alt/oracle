@@ -1,0 +1,1 @@
+There's no Fréchet space in the CPU, it has to use atoms, surprisingly it doesn't predict the dice game's outcomes it predicts the players topology as if it were a state space.
