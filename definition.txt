@@ -1,1 +1,1 @@
-There's no Fréchet space in the CPU, it has to use atoms, surprisingly it doesn't predict the dice game's outcomes it predicts the players topology as if it were a state space.
+Fréchet space: a locally convex(a subset) metrizable(countable) topological(spacetime) vector space(tracing atomic coordinates) complete as a TVS(RMS maximum).
