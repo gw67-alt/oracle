@@ -10,7 +10,7 @@ import serial
 from datetime import datetime, timedelta
 
 class SerialSeismograph:
-    def __init__(self, port='/dev/ttyUSB0', baudrate=115200, timeout=0.02):
+    def __init__(self, port='COM8', baudrate=115200, timeout=0.02):
         """Initialize connection to real hardware"""
         self.serial = serial.Serial(port=port, baudrate=baudrate, timeout=timeout)
         print(f"Connected to {port} at {baudrate} baud")
@@ -172,7 +172,7 @@ def main():
     print("=" * 50)
     
     # EDIT HERE: Set your actual serial port (e.g., 'COM3', '/dev/ttyACM0')
-    port = '/dev/ttyUSB0'  # Change to your device's port
+    port = 'COM8'  # Change to your device's port
     baudrate = 115200      # Adjust to match your device
     
     monitor = MagnitudeMonitor(port=port, baudrate=baudrate, sample_rate=50)
