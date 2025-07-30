@@ -211,19 +211,8 @@ void displayEnhancedStats() {
   float rmsVal = getRMSValue(selectedChannel);
   float curvatureAvg = getAverageCurvature();
 
-  Serial.print("CURRENT: ");
-  Serial.print(currentVal, 3);
-  Serial.print("V │ PEAK: ");
-  Serial.print(peakVal, 3);
-  Serial.print("V │ RMS: ");
-  Serial.print(rmsVal, 3);
+  Serial.println(rmsVal, 3);
 
-  Serial.print(" CURVATURE: ");
-  Serial.print(curvatureAvg, 4);
-  Serial.print(" │ FLIPS: ");
-  Serial.print(flipCount);
-  Serial.print(" │ SAMPLES: ");
-  Serial.println(analysisCount);
 
 }
 
