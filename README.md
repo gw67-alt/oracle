@@ -1,1 +1,3 @@
-The EM field is saturated from temporal infinities in probability state space when following an oracle's rule set.
+O = C² < S/4
+
+Where O = oracle, C= cost, S= state space.
